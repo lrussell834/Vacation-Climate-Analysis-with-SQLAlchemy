@@ -39,8 +39,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/<start><br/>"
-        f"/api/v1.0/<start>/<end><br/>"
+        f"/api/v1.0/start/'2017-08-23'<br/>"
+        f"/api/v1.0/start_end/'2016-07-23'/'2017-07-23'"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -93,7 +93,7 @@ def tobs():
 
     session.close()
 
-    # Create a dictionary from the row data and append to a list of year_data for weather at the most active station
+    # Create a dictionary from the row data and append to a list of tobs_data for weather at the most active station
     tobs_data= []
     for date, tobs in results:
         tobs_dict = {}
@@ -102,6 +102,54 @@ def tobs():
         tobs_data.append(tobs_dict)
 
     return jsonify(tobs_data)
+
+
+@app.route("/api/v1.0/start/<start>")
+def stats_by_start(start):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+    """Fetch the temperatures greater than or equal to the date provided and return the 
+    minimum, maximum, and average temperature, or a 404 if not."""
+    # Query all values
+    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+    filter(Measurement.date >= start).all()
+    
+    session.close()
+
+    # Convert list of tuples into normal list
+    all_dates = list(np.ravel(results))
+    
+    start_dict = {
+                'TMIN': all_dates[0], 
+                'TMAX': all_dates[1],
+                'TAVG': all_dates[2]
+    }
+
+    return jsonify(start_dict)
+
+    return jsonify({"error": f"Temperature with start date {start} not found."}), 404
+
+@app.route("/api/v1.0/start_end/<start>/<end>")
+def stats(start=None, end=None):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+    """Fetch the temperatures greater than or equal to the date range provided and return the 
+    minimum, maximum, and average temperature"""
+    # Select statement
+    sel = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
+    
+    if not end:
+        start = dt.datetime.strptime(start, "%m%d%Y")
+
+    # calculate TMIN, TAVG, TMAX for dates greater than start
+    results = session.query(*sel).filter(Measurement.date >= start).all()
+
+    session.close()
+
+    # Unravel results into a 1D array and convert to a list
+    temps = list(np.ravel(results))
+    return jsonify(temps)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
