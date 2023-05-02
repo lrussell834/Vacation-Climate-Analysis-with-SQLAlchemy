@@ -1,7 +1,5 @@
 # Vacation-Climate-Analysis-with-SQLAlchemy
 
-# Vacation-Climate-Analysis-with-SQLAlchemy
-
 I was assisted by Ask BCS on the following section:
 1. 	/api/v1.0/<start> and /api/v1.0/<start>/<end>
 o Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a specified start or start-end range.
